@@ -5,8 +5,11 @@ Mainly implemented as case classes.
 Most of the classes in this collection relate to stable, standardized models, often ISO-??? based
 
 ### Catalog
-IBAN: Representation of an International Bank Account Number (ISO 13616:2007)
-ISO3166: Country Code
+**IBAN**: Representation of an International Bank Account Number (ISO 13616:2007)
+
+**ISO3166**: Country Code
 
 ### In Progress (porting from Java)
-MSISDN: Mobile number format
+**MSISDN**: Mobile number format
+
+
