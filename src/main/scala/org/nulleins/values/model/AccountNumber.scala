@@ -1,5 +1,4 @@
 package org.nulleins.values.model
-
 import scalaz._
 
 trait AccountNumber {
@@ -10,7 +9,7 @@ trait AccountNumber {
     if(code == null) {
       Failure("Code may not be null")
     } else {
-      val result = noise.replaceAllIn(code, "")
+      val result = noise.replaceAllIn(code, "").toUpperCase
       if (result.length >= min) Success(result) else Failure(s"""Length of "$result" less than $min""")
     }
   }
@@ -19,15 +18,18 @@ trait AccountNumber {
     (for(_ <- 1 to num) yield "*").mkString
   }
 
+  private def inRangeOrElse(value: Int, default: Int = 1)(implicit range: Range) =
+    if (range contains value) value else default
+
   /** @return a copy of the supplied account number, with all but the
     *         specified initial and final portion beclouded by stars
     * @param value of the account number
     * @param first length to be displayed in clear
     * @param last length to be displayed in clear */
   def obfuscate( value: String, first: Int, last: Int) = {
-    val prefix = if(first >= 0 && first < value.length) first else 1
-    val suffix = if(last >= 0 && last < value.length) last else 1
-    val obstars = stars(math.min(value.length - prefix - suffix,value.length))
-    s"${value take prefix}$obstars${value drop value.length-suffix}"
+    implicit val range = 0 until value.length
+    val prefix = inRangeOrElse(first)
+    val suffix = inRangeOrElse(last)
+    val cloud = stars(math.min(value.length - prefix - suffix,value.length))
+    s"${value take prefix}$cloud${value drop value.length-suffix}"
   }
-}
