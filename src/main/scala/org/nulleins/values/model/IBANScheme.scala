@@ -2,7 +2,7 @@ package org.nulleins.values.model
 
 import scala.io.Source
 import scalaz.syntax.std.option._
-import scalaz.{Failure, Success, Validation}
+import scalaz._
 
 case class IBANScheme(countryCode: ISO3166, bankPic: String, branchPic: String, accountPic: String)
     extends AccountNumber {
@@ -13,9 +13,9 @@ case class IBANScheme(countryCode: ISO3166, bankPic: String, branchPic: String, 
   def branchCode(value: String) = value match { case pattern(_, _, _, b, _) => b }
   def accountNumber(value: String) = value match { case pattern(_, _, _, _, c) => c }
 
-  /** @return the input `value`, normalized and wrapped in `Success` if: it has a scheme defined
-    *         it matches the scheme pattern and the checksum is valid; else a `Failure` wrapping
-    *         the failure message detailing the (first) reason it was not considered valid */
+  /** @return the input `value`, normalized and wrapped in `Success` if it matches the
+    *         scheme pattern and the checksum is valid, otherwise a `Failure` wrapping
+    *         the failure message detailing the reason it was not considered valid */
   def parse(value: String): Validation[String, String] = for {
     normal <- normalize(value, 5)
     result <- pattern.findFirstIn(normal).toSuccess(s"$value does not match pattern")
@@ -63,5 +63,5 @@ object IBANFactory {
   def apply(values: IBANScheme*): IBANFactory = new IBANFactory(values.map(v => v.countryCode -> v).toMap)
   def apply(configFile: String): IBANFactory = IBANFactory(
     (Source.fromInputStream(getClass.getResourceAsStream(configFile)).getLines()
-      .filter(!_.startsWith("#")) map(line => IBANScheme(line))).toSeq :_*)
+      .filter(!_.startsWith("#")) map(IBANScheme(_))).toSeq :_*)
 }
