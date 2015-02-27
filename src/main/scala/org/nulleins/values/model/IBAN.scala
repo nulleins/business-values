@@ -1,6 +1,6 @@
 package org.nulleins.values.model
 
-/** Representation of an International Bank Account Number (IBAN, ISO 13616:2007)
+/** Representation of an International Bank Account Number (IBAN)
   * <pre>
   * +-------------------------------------------------------+
   * | IBAN                                                  |
@@ -15,13 +15,13 @@ package org.nulleins.values.model
   * and up to thirty alpha-numeric characters for the domestic bank account number, BBAN
   * (Basic Bank Account Number), which itself may be composed of bank code, branch code
   * and account number, as specified by the national scheme */
-case class IBAN(value: String, private val scheme: IBANScheme) {
+case class IBAN(value: String, private val scheme: IBANScheme) extends AccountNumber {
   require(value != null, "IBAN string cannot be null")
   require(scheme != null, "IBANScheme cannot be null")
-  require(IBANScheme.valid(value), s"IBAN string must be valid for scheme ($value)")
+  require(scheme.valid(value), s"IBAN string must be valid for scheme ($value)")
 
   /** @return the string representation of this IBAN, obfuscated */
-  override lazy val toString = IBANScheme.obfuscate(value, 5, 2)
+  override lazy val toString = obfuscate(value, 5, 2)
 
   /** @return the ISO2166 country code of this IBAN */
   lazy val countryCode = scheme countryCode
@@ -39,13 +39,4 @@ case class IBAN(value: String, private val scheme: IBANScheme) {
   lazy val accountNumber: String = scheme accountNumber value
 
   lazy val formatted = value.sliding(4,4).mkString(" ")
-}
-
-object IBAN {
-  /** Create an IBAN from the supplied string
-    * @param value of the IBAN as a string, may contain punctuation
-    * @throws RuntimeException if the supplied value does not represent a valid IBAN code */
-  def apply(value: String): IBAN = IBANScheme.parse(value) fold (
-    failure => throw new RuntimeException(failure),
-    success => IBANScheme.create(success))
 }
