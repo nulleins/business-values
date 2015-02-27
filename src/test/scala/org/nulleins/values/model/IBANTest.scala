@@ -1,7 +1,9 @@
-package org.nulleins.values.model
+import com.citibank.citift.sim.model._
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
+
+import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
 class IBANTest extends FunSuite {
@@ -9,6 +11,7 @@ class IBANTest extends FunSuite {
   val testIbanCz = "CZ1955000000001041041022"
   val testIbanPl = "PL19114011240000540026001002"
   val testChecksum = "GB82WEST12345698765432"
+  val factory = IBANFactory("/iban-schemes.properties")
 
   def blackCases = """AT611904300235473201
                      |GB82TEST12345698765432
@@ -104,7 +107,7 @@ class IBANTest extends FunSuite {
                      |CH93 0076 2011 6238 5295 7""".stripMargin
 
   test("can read schema config") {
-    val ieIbanScheme = IBANScheme.schemeFor(ISO3166("IE"))
+    val ieIbanScheme = factory.schemeFor(ISO3166("IE"))
     assert(ieIbanScheme.isSuccess)
     val scheme = ieIbanScheme.toList.head
     assert(scheme.length === 22)
@@ -114,11 +117,11 @@ class IBANTest extends FunSuite {
     assert(scheme.bankCode(testIbanIe) === "IRCE")
     assert(scheme.branchCode(testIbanIe) === "920501")
     assert(scheme.accountNumber(testIbanIe) == "12345678")
-    assert(scheme.matches(testIbanIe).isSuccess)
+    assert(scheme.valid(testIbanIe))
   }
 
   test("can create IBAN from string") {
-    val iban = IBAN(testIbanCz)
+    val iban = factory.create(testIbanCz)
     assert(iban.toString === "CZ195*****************22")
     assert(iban.value === "CZ1955000000001041041022")
     assert(iban.bban.id === "55000000001041041022")
@@ -126,19 +129,19 @@ class IBANTest extends FunSuite {
   }
 
   test("valid ibans") {
-    whiteCases.lines foreach(iban => assert(IBANScheme.valid(iban)))
+    whiteCases.lines foreach(iban => assert(factory.valid(iban)))
   }
 
   test("invalid ibans") {
-    blackCases.lines foreach(iban => assert(!IBANScheme.valid(iban)))
+    blackCases.lines foreach(iban => assert(!factory.valid(iban)))
   }
 
   test("validate iban: positive") {
-    assert(IBANScheme.valid("IE64IRCE92050112345678"))
+    assert(factory.valid("IE64IRCE92050112345678"))
   }
 
   test("validate iban: negative") {
-    assert(!IBANScheme.valid("PLAA999999999999999999999999"))
+    assert(!factory.valid("PLAA999999999999999999999999"))
   }
 
   test("validate checksum: positive") {
@@ -156,37 +159,50 @@ class IBANTest extends FunSuite {
 
   test("bad construction: null supplied") {
     val thrown = intercept[RuntimeException] {
-      val iban = IBAN(null)
+      factory.schemeFor(null) fold (
+        f => throw new RuntimeException(f),
+        s => s)
+      val iban = factory.create(null)
     }
-    assert(thrown.getMessage === "Code may not be null")
+    assert(thrown.getMessage === "Scheme not registered for \"null\"")
   }
 
   test("bad construction: string too short") {
     val thrown = intercept[RuntimeException] {
-      val iban = IBAN("IE23")
+      val iban = factory.create("IE23")
     }
     assert(thrown.getMessage === """Length of "IE23" less than 5""")
   }
 
   test("bad construction: unregistered schema (Kyrgyzstan)") {
     val thrown = intercept[RuntimeException] {
-      val iban = IBAN("KG580540105180021273113007")
+      val iban = factory.create("KG580540105180021273113007")
     }
-    assert(thrown.getMessage === "Scheme not registered for KG")
+    assert(thrown.getMessage === "Scheme not registered for \"KG\"")
   }
 
   test("bad construction: pattern match failure") {
     val thrown = intercept[RuntimeException] {
-      val iban = IBAN("PLAA999999999999999999999999")
+      val iban = factory.create("PLAA999999999999999999999999")
     }
     assert(thrown.getMessage === "PLAA999999999999999999999999 does not match pattern")
   }
 
   test("bad construction: incorrect-checksum") {
     val thrown = intercept[RuntimeException] {
-      val iban = IBAN("CH9300762011623852999")
+      val iban = factory.create("CH9300762011623852999")
     }
     assert(thrown.getMessage === "Invalid checksum")
+  }
+
+  val testLinePattern = "([YN]):([ -~]*)".r
+  test("bulk test from iban file") {
+    val testDataFile = getClass.getResource("iban-test-data.txt")
+    Source.fromFile(testDataFile.getFile).getLines() foreach {
+      case testLinePattern(v, iban) =>
+        val isValid = factory.valid(iban)
+        assert((!isValid && v == "N") || (isValid && v == "Y"))
+    }
   }
 
 }
