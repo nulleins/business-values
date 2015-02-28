@@ -1,6 +1,5 @@
-import com.citibank.citift.sim.model.IBANScheme._
-import com.citibank.citift.sim.model._
 import org.junit.runner.RunWith
+import org.nulleins.values.model.{BBAN, IBANFactory, ISO3166, IBANScheme}
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
@@ -22,7 +21,7 @@ class IBANSchemeTest extends FunSuite {
     schemeZA.parse(ibanBadChecksum) fold (
       failure => assert(failure === "Invalid checksum"),
       success => fail())
-    assert(generateChecksum(ISO3166("KG"), "0540105180021273113007") === 73)
+    assert(IBANScheme.generateChecksum(ISO3166("KG"), "0540105180021273113007") === 73)
     assert(schemeKG.valid(ibanKGGood))
     assert(schemeZA.valid(ibanZAGood))
     val subject = factory.create(ibanZAGood)

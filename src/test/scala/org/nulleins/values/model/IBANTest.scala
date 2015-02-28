@@ -1,5 +1,5 @@
-import com.citibank.citift.sim.model._
 import org.junit.runner.RunWith
+import org.nulleins.values.model.{IBANScheme, ISO3166, IBANFactory}
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
